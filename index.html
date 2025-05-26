@@ -85,7 +85,7 @@
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   async function cargarClientes() {
-const { data, error } = await supabase.from('PEDIDOPDD25').select('*');
+const { data, error } = await supabase.from('clientes').select('*');
     if (error) {
       alert('Error al cargar clientes');
       console.error(error);
