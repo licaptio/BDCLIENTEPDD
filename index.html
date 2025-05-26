@@ -2,8 +2,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Consulta de Clientes</title>
   <style>
     body {
@@ -57,45 +57,58 @@
   <h1>Consulta de Clientes</h1>
   <input type="text" id="buscador" placeholder="Buscar por nombre o clave..." autocomplete="off" />
   <div id="sugerencias"><div class="sugerencias-lista" id="lista-sugerencias"></div></div>
-  <script>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://cvpbtjlupswbyxenugpz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+    );
+
     const buscador = document.getElementById('buscador');
     const lista = document.getElementById('lista-sugerencias');
-    const sugerencias = document.getElementById('sugerencias');
+    const normalizar = t => t.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 
-    const datos = [
-      "GERARDO GUADALUPE GARZA G",
-      "LUIS GERARDO GUERRA QUEZA",
-      "GERARDO DE JESUS GUIDI KA",
-      "LUIS GERARDO SALAZAR DE L",
-      "GERARDO SALDAÑA GARCIA",
-      "GERARDO BECERRA SEPULVEDA",
-      "AARON GERARDO GARZA GARCI"
-    ];
-
+    let clientes = [];
     let indiceActivo = -1;
 
-    buscador.addEventListener('input', () => {
-      const valor = buscador.value.toLowerCase();
+    async function cargarClientes() {
+      const { data, error } = await supabase.from('clientes').select('*');
+      if (error) return console.error('Error cargando clientes:', error);
+      clientes = data;
+    }
+
+    function filtrarClientes(valor) {
+      const palabras = valor.split(' ').map(normalizar);
+      return clientes.filter(c => {
+        const nombre = normalizar(c.nombre_fiscal || '');
+        const clave = (c.clave_tecnopro || '').toString();
+        return palabras.every(p => nombre.includes(p) || clave.includes(p));
+      });
+    }
+
+    function actualizarSugerencias(listaFiltrada) {
       lista.innerHTML = '';
-      if (!valor) return;
-
-      const coincidencias = datos.filter(nombre =>
-        nombre.toLowerCase().includes(valor)
-      );
-
-      coincidencias.forEach((nombre, index) => {
+      listaFiltrada.forEach((c, i) => {
         const div = document.createElement('div');
-        div.className = 'sugerencia-item';
-        div.textContent = nombre;
-        div.dataset.index = index;
+        div.className = 'sugerencia-item' + (i === indiceActivo ? ' activa' : '');
+        div.textContent = c.nombre_fiscal;
+        div.dataset.index = i;
         div.addEventListener('click', () => {
-          buscador.value = nombre;
+          buscador.value = c.nombre_fiscal;
           lista.innerHTML = '';
         });
         lista.appendChild(div);
       });
+    }
 
+    buscador.addEventListener('input', () => {
+      const valor = buscador.value.trim();
       indiceActivo = -1;
+      if (valor.length < 2) return lista.innerHTML = '';
+      const filtrados = filtrarClientes(valor);
+      actualizarSugerencias(filtrados);
     });
 
     buscador.addEventListener('keydown', (e) => {
@@ -104,13 +117,13 @@
         e.preventDefault();
         if (indiceActivo < items.length - 1) {
           indiceActivo++;
-          actualizarSugerenciaActiva(items);
+          actualizarSeleccion(items);
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (indiceActivo > 0) {
           indiceActivo--;
-          actualizarSugerenciaActiva(items);
+          actualizarSeleccion(items);
         }
       } else if (e.key === 'Enter' && indiceActivo >= 0) {
         e.preventDefault();
@@ -119,11 +132,13 @@
       }
     });
 
-    function actualizarSugerenciaActiva(items) {
+    function actualizarSeleccion(items) {
       items.forEach((item, idx) => {
         item.classList.toggle('activa', idx === indiceActivo);
       });
     }
+
+    cargarClientes();
   </script>
 </body>
 </html>
