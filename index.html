@@ -3,12 +3,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Clientes</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f9ff;
+      margin: 0;
       padding: 1rem;
     }
     h1 {
@@ -16,184 +17,113 @@
       color: #004080;
     }
     #buscador {
-      display: block;
       width: 100%;
       max-width: 600px;
       margin: 1rem auto;
+      display: block;
       padding: 0.5rem;
       font-size: 1rem;
+      border: 2px solid #cccc00;
+      background-color: #fff8c6;
     }
     #sugerencias {
-      position: absolute;
-      width: 100%;
+      position: relative;
       max-width: 600px;
       margin: 0 auto;
+    }
+    .sugerencias-lista {
+      position: absolute;
+      top: 100%;
       left: 0;
       right: 0;
-      top: 110px;
       background: white;
       border: 1px solid #cce0ff;
       border-top: none;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      z-index: 999;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 99;
     }
     .sugerencia-item {
       padding: 0.5rem;
       cursor: pointer;
     }
     .sugerencia-item:hover,
-    .sugerencia-item.active {
+    .sugerencia-item.activa {
       background-color: #e6f0ff;
-    }
-    #resultados {
-      margin-top: 4rem;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-      background: white;
-      padding: 1rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .fila {
-      display: flex;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
-    }
-    .col-texto {
-      flex: 2;
-      padding-right: 1rem;
-    }
-    .col-imagen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .col-imagen img {
-      max-width: 100px;
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
-    }
-    .dato {
-      margin-bottom: 0.5rem;
-    }
-    .dato strong {
-      display: inline-block;
-      min-width: 130px;
     }
   </style>
 </head>
 <body>
   <h1>Consulta de Clientes</h1>
   <input type="text" id="buscador" placeholder="Buscar por nombre o clave..." autocomplete="off" />
-  <div id="sugerencias"></div>
-  <div id="resultados"></div>
+  <div id="sugerencias"><div class="sugerencias-lista" id="lista-sugerencias"></div></div>
+  <script>
+    const buscador = document.getElementById('buscador');
+    const lista = document.getElementById('lista-sugerencias');
+    const sugerencias = document.getElementById('sugerencias');
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const datos = [
+      "GERARDO GUADALUPE GARZA G",
+      "LUIS GERARDO GUERRA QUEZA",
+      "GERARDO DE JESUS GUIDI KA",
+      "LUIS GERARDO SALAZAR DE L",
+      "GERARDO SALDAÑA GARCIA",
+      "GERARDO BECERRA SEPULVEDA",
+      "AARON GERARDO GARZA GARCI"
+    ];
 
-    const supabase = createClient(
-      'https://cvpbtjlupswbyxenugpz.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
-    );
-
-    let ultimosResultados = [];
     let indiceActivo = -1;
 
-    async function buscarClientes(valor) {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .ilike('nombre_fiscal', `%${valor}%`);
+    buscador.addEventListener('input', () => {
+      const valor = buscador.value.toLowerCase();
+      lista.innerHTML = '';
+      if (!valor) return;
 
-      if (error) {
-        console.error('Error:', error);
-        return;
-      }
+      const coincidencias = datos.filter(nombre =>
+        nombre.toLowerCase().includes(valor)
+      );
 
-      ultimosResultados = data;
-      renderizarSugerencias();
-    }
+      coincidencias.forEach((nombre, index) => {
+        const div = document.createElement('div');
+        div.className = 'sugerencia-item';
+        div.textContent = nombre;
+        div.dataset.index = index;
+        div.addEventListener('click', () => {
+          buscador.value = nombre;
+          lista.innerHTML = '';
+        });
+        lista.appendChild(div);
+      });
 
-    function renderizarSugerencias() {
-      const sugerencias = document.getElementById('sugerencias');
-      sugerencias.innerHTML = ultimosResultados.map((c, i) => `
-        <div class="sugerencia-item ${i === indiceActivo ? 'active' : ''}" data-index="${i}">
-          ${c.nombre_fiscal}
-        </div>
-      `).join('');
-    }
-
-    function mostrarCliente(c) {
-      const contenedor = document.getElementById('resultados');
-      contenedor.innerHTML = `
-        <div class="fila">
-          <div class="col-texto">
-            <div class="dato"><strong>Clave:</strong> ${c.clave_tecnopro}</div>
-            <div class="dato"><strong>Precio catálogo:</strong> ${c.catalogo_precio || ''}</div>
-            <div class="dato"><strong>Nombre:</strong> ${c.nombre_fiscal}</div>
-            <div class="dato"><strong>RFC:</strong> ${c.rfc || ''}</div>
-            <div class="dato"><strong>Dirección:</strong> ${c.direccion || ''}</div>
-            <div class="dato"><strong>Teléfono:</strong> ${c.telefono || ''}</div>
-            <div class="dato"><strong>Régimen Fiscal:</strong> ${c.regimen_fiscal || ''}</div>
-            <div class="dato"><strong>Email:</strong> ${c.email || ''}</div>
-            <div class="dato"><strong>WhatsApp:</strong> ${c.celular_whatsapp || ''}</div>
-            <div class="dato"><strong>Autorizado:</strong> ${c.nombre_autorizado_1 || ''}</div>
-            <div class="dato"><strong>Fecha de registro:</strong> ${c.fecha_registro || ''}</div>
-            <div class="dato"><strong>Comentarios:</strong> ${c.comentarios || ''}</div>
-          </div>
-          <div class="col-imagen">
-            <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" />
-            <div>Foto Cliente</div>
-            <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=No+Autorizado'}" alt="Autorizado" />
-            <div>Persona Autorizada</div>
-          </div>
-        </div>
-        <div class="fila">
-          <div class="col-imagen">
-            <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/100?text=No+Comprobante'}" alt="Comprobante" />
-            <div>Comprobante</div>
-          </div>
-        </div>
-      `;
-    }
-
-    document.getElementById('buscador').addEventListener('input', e => {
-      const valor = e.target.value.trim();
       indiceActivo = -1;
-      if (valor.length >= 3) {
-        buscarClientes(valor);
-      } else {
-        document.getElementById('sugerencias').innerHTML = '';
-        document.getElementById('resultados').innerHTML = '';
-      }
     });
 
-    document.getElementById('buscador').addEventListener('keydown', e => {
-      const total = ultimosResultados.length;
+    buscador.addEventListener('keydown', (e) => {
+      const items = lista.querySelectorAll('.sugerencia-item');
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        indiceActivo = (indiceActivo + 1) % total;
-        renderizarSugerencias();
+        if (indiceActivo < items.length - 1) {
+          indiceActivo++;
+          actualizarSugerenciaActiva(items);
+        }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        indiceActivo = (indiceActivo - 1 + total) % total;
-        renderizarSugerencias();
-      } else if (e.key === 'Enter' && indiceActivo >= 0 && ultimosResultados[indiceActivo]) {
-        mostrarCliente(ultimosResultados[indiceActivo]);
-        document.getElementById('sugerencias').innerHTML = '';
+        if (indiceActivo > 0) {
+          indiceActivo--;
+          actualizarSugerenciaActiva(items);
+        }
+      } else if (e.key === 'Enter' && indiceActivo >= 0) {
+        e.preventDefault();
+        buscador.value = items[indiceActivo].textContent;
+        lista.innerHTML = '';
       }
     });
 
-    document.getElementById('sugerencias').addEventListener('click', e => {
-      const item = e.target.closest('.sugerencia-item');
-      if (item) {
-        const index = parseInt(item.dataset.index);
-        mostrarCliente(ultimosResultados[index]);
-        document.getElementById('sugerencias').innerHTML = '';
-      }
-    });
+    function actualizarSugerenciaActiva(items) {
+      items.forEach((item, idx) => {
+        item.classList.toggle('activa', idx === indiceActivo);
+      });
+    }
   </script>
 </body>
 </html>
