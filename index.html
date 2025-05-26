@@ -2,8 +2,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Clientes</title>
   <style>
     body {
@@ -18,127 +18,175 @@
     }
     #buscador {
       width: 100%;
-      max-width: 600px;
+      max-width: 500px;
       margin: 1rem auto;
       display: block;
       padding: 0.5rem;
       font-size: 1rem;
-      border: 2px solid #cccc00;
-      background-color: #fff8c6;
+      background: #fff8cc;
+      border: 2px solid #444;
+      border-radius: 6px;
     }
     #sugerencias {
-      position: relative;
-      max-width: 600px;
+      width: 100%;
+      max-width: 500px;
       margin: 0 auto;
-    }
-    .sugerencias-lista {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
       background: white;
       border: 1px solid #cce0ff;
-      border-top: none;
       border-radius: 0 0 8px 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: relative;
       z-index: 99;
     }
     .sugerencia-item {
       padding: 0.5rem;
       cursor: pointer;
     }
-    .sugerencia-item:hover,
-    .sugerencia-item.activa {
+    .sugerencia-item:hover, .sugerencia-item.active {
       background-color: #e6f0ff;
+    }
+    .cliente {
+      background: #fff;
+      border: 1px solid #cce0ff;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem auto;
+      max-width: 600px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .fila {
+      display: flex;
+      justify-content: space-between;
+    }
+    .columna {
+      width: 48%;
+    }
+    .cliente img {
+      max-width: 100%;
+      border-radius: 6px;
+    }
+    .imagenes {
+      display: flex;
+      gap: 10px;
+      margin-top: 0.5rem;
+    }
+    .dato {
+      margin: 0.25rem 0;
     }
   </style>
 </head>
 <body>
   <h1>Consulta de Clientes</h1>
   <input type="text" id="buscador" placeholder="Buscar por nombre o clave..." autocomplete="off" />
-  <div id="sugerencias"><div class="sugerencias-lista" id="lista-sugerencias"></div></div>
+  <div id="sugerencias"></div>
+  <div id="resultados"></div>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabaseUrl = 'https://cvpbtjlupswbyxenugpz.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const supabase = createClient(
-      'https://cvpbtjlupswbyxenugpz.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
-    );
+    let ultimosResultados = [];
+
+    function mostrarClientes(clientes) {
+      const contenedor = document.getElementById('resultados');
+      contenedor.innerHTML = '';
+      clientes.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'cliente';
+        div.innerHTML = `
+          <div class="fila">
+            <div class="columna">
+              <div class="dato"><strong>Clave:</strong> ${c.clave_tecnopro}</div>
+              <div class="dato"><strong>Precio catálogo:</strong> ${c.catalogo_precio}</div>
+              <div class="dato"><strong>Nombre:</strong> ${c.nombre_fiscal}</div>
+              <div class="dato"><strong>RFC:</strong> ${c.rfc}</div>
+              <div class="dato"><strong>Dirección:</strong> ${c.direccion}</div>
+              <div class="dato"><strong>Teléfono:</strong> ${c.telefono}</div>
+              <div class="dato"><strong>Correo:</strong> ${c.email}</div>
+              <div class="dato"><strong>WhatsApp:</strong> ${c.celular_whatsapp}</div>
+              <div class="dato"><strong>Fecha de Registro:</strong> ${c.fecha_registro || ''}</div>
+              <div class="dato"><strong>Comentarios:</strong> ${c.comentarios || ''}</div>
+            </div>
+            <div class="columna">
+              <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" />
+              <div class="dato"><strong>Foto Cliente</strong></div>
+              <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=Autorizado'}" alt="Autorizado" />
+              <div class="dato"><strong>Persona Autorizada</strong></div>
+            </div>
+          </div>
+          <div class="imagenes">
+            <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/100?text=Comprobante'}" alt="Comprobante" />
+          </div>
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    async function buscarClientes(valor) {
+      const palabras = valor.trim().split(/\s+/);
+      if (palabras.length === 0) return;
+
+      let query = supabase.from('clientes').select('*');
+      palabras.forEach(p => {
+        query = query.ilike('nombre_fiscal', `%${p}%`);
+      });
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      ultimosResultados = data;
+      mostrarClientes(data);
+
+      sugerencias.innerHTML = data.map((c, i) => `
+        <div class="sugerencia-item" data-index="${i}">${c.nombre_fiscal}</div>
+      `).join('');
+    }
 
     const buscador = document.getElementById('buscador');
-    const lista = document.getElementById('lista-sugerencias');
-    const normalizar = t => t.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    const sugerencias = document.getElementById('sugerencias');
+    let sugerenciaActiva = -1;
 
-    let clientes = [];
-    let indiceActivo = -1;
-
-    async function cargarClientes() {
-      const { data, error } = await supabase.from('clientes').select('*');
-      if (error) return console.error('Error cargando clientes:', error);
-      clientes = data;
-    }
-
-    function filtrarClientes(valor) {
-      const palabras = valor.split(' ').map(normalizar);
-      return clientes.filter(c => {
-        const nombre = normalizar(c.nombre_fiscal || '');
-        const clave = (c.clave_tecnopro || '').toString();
-        return palabras.every(p => nombre.includes(p) || clave.includes(p));
-      });
-    }
-
-    function actualizarSugerencias(listaFiltrada) {
-      lista.innerHTML = '';
-      listaFiltrada.forEach((c, i) => {
-        const div = document.createElement('div');
-        div.className = 'sugerencia-item' + (i === indiceActivo ? ' activa' : '');
-        div.textContent = c.nombre_fiscal;
-        div.dataset.index = i;
-        div.addEventListener('click', () => {
-          buscador.value = c.nombre_fiscal;
-          lista.innerHTML = '';
-        });
-        lista.appendChild(div);
-      });
-    }
-
-    buscador.addEventListener('input', () => {
-      const valor = buscador.value.trim();
-      indiceActivo = -1;
-      if (valor.length < 2) return lista.innerHTML = '';
-      const filtrados = filtrarClientes(valor);
-      actualizarSugerencias(filtrados);
-    });
-
-    buscador.addEventListener('keydown', (e) => {
-      const items = lista.querySelectorAll('.sugerencia-item');
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (indiceActivo < items.length - 1) {
-          indiceActivo++;
-          actualizarSeleccion(items);
-        }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (indiceActivo > 0) {
-          indiceActivo--;
-          actualizarSeleccion(items);
-        }
-      } else if (e.key === 'Enter' && indiceActivo >= 0) {
-        e.preventDefault();
-        buscador.value = items[indiceActivo].textContent;
-        lista.innerHTML = '';
+    buscador.addEventListener('input', e => {
+      const valor = e.target.value.trim();
+      if (valor.length >= 3) {
+        buscarClientes(valor);
+      } else {
+        sugerencias.innerHTML = '';
+        document.getElementById('resultados').innerHTML = '';
       }
     });
 
-    function actualizarSeleccion(items) {
-      items.forEach((item, idx) => {
-        item.classList.toggle('activa', idx === indiceActivo);
-      });
-    }
+    buscador.addEventListener('keydown', e => {
+      const items = sugerencias.querySelectorAll('.sugerencia-item');
+      if (e.key === 'ArrowDown') {
+        sugerenciaActiva = (sugerenciaActiva + 1) % items.length;
+      } else if (e.key === 'ArrowUp') {
+        sugerenciaActiva = (sugerenciaActiva - 1 + items.length) % items.length;
+      } else if (e.key === 'Enter') {
+        if (sugerenciaActiva >= 0) {
+          items[sugerenciaActiva].click();
+        }
+      }
 
-    cargarClientes();
+      items.forEach((el, i) => el.classList.toggle('active', i === sugerenciaActiva));
+    });
+
+    sugerencias.addEventListener('click', e => {
+      const item = e.target.closest('.sugerencia-item');
+      if (item) {
+        const index = parseInt(item.dataset.index, 10);
+        mostrarClientes([ultimosResultados[index]]);
+        sugerencias.innerHTML = '';
+        buscador.value = ultimosResultados[index].nombre_fiscal;
+        sugerenciaActiva = -1;
+      }
+    });
   </script>
 </body>
 </html>
