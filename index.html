@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Clientes</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -46,66 +45,117 @@
     .dato {
       margin: 0.25rem 0;
     }
-  </style>
+ 
+  #sugerencias {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    border: 1px solid #cce0ff;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: absolute;
+    z-index: 99;
+  }
+
+  .sugerencia-item {
+    padding: 0.5rem;
+    cursor: pointer;
+  }
+
+  .sugerencia-item:hover {
+    background-color: #e6f0ff;
+  }
+
+
+
+
+ </style>
 </head>
 <body>
   <h1>Consulta de Clientes</h1>
-  <input type="text" id="buscador" placeholder="Buscar por nombre o clave..." />
-  <div id="resultados"></div>
+<input type="text" id="buscador" placeholder="Buscar por nombre o clave..." autocomplete="off" />
+<div id="sugerencias"></div>
+<div id="resultados"></div>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  <script>
-    const supabaseUrl = 'https://cvpbtjlupswbyxenugpz.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'; // Usa tu clave pública (anon)
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = 'https://cvpbtjlupswbyxenugpz.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-    async function cargarClientes() {
-      const { data, error } = await supabase.from('clientes').select('*');
-      if (error) {
-        alert('Error al cargar clientes');
-        console.error(error);
-        return;
-      }
-      window.todosLosClientes = data;
-      mostrarClientes(data);
+  async function cargarClientes() {
+    const { data, error } = await supabase.from('clientes').select('*');
+    if (error) {
+      alert('Error al cargar clientes');
+      console.error(error);
+      return;
+    }
+    window.todosLosClientes = data;
+    mostrarClientes(data);
+  }
+
+  function normalizarTexto(texto) {
+    return texto.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  }
+
+  function mostrarClientes(clientes) {
+    const contenedor = document.getElementById('resultados');
+    contenedor.innerHTML = '';
+
+    clientes.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'cliente';
+      div.innerHTML = `
+        <div class="dato"><strong>Clave:</strong> ${c.clave_tecnopro}</div>
+        <div class="dato"><strong>Nombre:</strong> ${c.nombre_fiscal}</div>
+        <div class="dato"><strong>Dirección:</strong> ${c.direccion || ''}</div>
+        <div class="dato"><strong>Teléfono:</strong> ${c.telefono || ''}</div>
+        <div class="imagenes">
+          <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" />
+          <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/100?text=No+Comprobante'}" alt="Comprobante" />
+          <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=No+Autorizado'}" alt="Autorizado" />
+        </div>
+      `;
+      contenedor.appendChild(div);
+    });
+  }
+
+  const buscador = document.getElementById('buscador');
+  const sugerencias = document.getElementById('sugerencias');
+
+  buscador.addEventListener('input', e => {
+    const valor = normalizarTexto(e.target.value);
+    if (!valor) {
+      sugerencias.innerHTML = '';
+      return;
     }
 
-    function normalizarTexto(texto) {
-      return texto.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
-    }
-
-    function mostrarClientes(clientes) {
-      const contenedor = document.getElementById('resultados');
-      contenedor.innerHTML = '';
-
-      clientes.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'cliente';
-        div.innerHTML = `
-          <div class="dato"><strong>Clave:</strong> ${c.clave_tecnopro}</div>
-          <div class="dato"><strong>Nombre:</strong> ${c.nombre_fiscal}</div>
-          <div class="dato"><strong>Dirección:</strong> ${c.direccion || ''}</div>
-          <div class="dato"><strong>Teléfono:</strong> ${c.telefono || ''}</div>
-          <div class="imagenes">
-            <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" />
-            <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/100?text=No+Comprobante'}" alt="Comprobante" />
-            <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=No+Autorizado'}" alt="Autorizado" />
-          </div>
-        `;
-        contenedor.appendChild(div);
-      });
-    }
-
-    document.getElementById('buscador').addEventListener('input', e => {
-      const valor = normalizarTexto(e.target.value);
-      const resultados = window.todosLosClientes.filter(c => {
-        const clave = (c.clave_tecnopro || '').toString();
-        const nombre = normalizarTexto(c.nombre_fiscal || '');
-        return nombre.includes(valor) || clave.includes(valor);
-      });
-      mostrarClientes(resultados);
+    const coincidencias = window.todosLosClientes.filter(c => {
+      const clave = (c.clave_tecnopro || '').toString();
+      const nombre = normalizarTexto(c.nombre_fiscal || '');
+      return nombre.includes(valor) || clave.includes(valor);
     });
 
-    cargarClientes();
-  </script>
+    sugerencias.innerHTML = coincidencias.map(c => `
+      <div class="sugerencia-item" data-clave="${c.clave_tecnopro}">${c.nombre_fiscal}</div>
+    `).join('');
+  });
+
+  sugerencias.addEventListener('click', e => {
+    const item = e.target.closest('.sugerencia-item');
+    if (item) {
+      const clave = item.dataset.clave;
+      const seleccionado = window.todosLosClientes.find(c => c.clave_tecnopro.toString() === clave);
+      mostrarClientes([seleccionado]);
+      sugerencias.innerHTML = '';
+      buscador.value = seleccionado.nombre_fiscal;
+    }
+  });
+
+  cargarClientes();
+</script>
+
+
 </body>
 </html>
