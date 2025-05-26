@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta de Clientes</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f9ff;
+      margin: 0;
+      padding: 1rem;
+    }
+    h1 {
+      text-align: center;
+      color: #004080;
+    }
+    #buscador {
+      width: 100%;
+      max-width: 500px;
+      margin: 1rem auto;
+      display: block;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .cliente {
+      background: #fff;
+      border: 1px solid #cce0ff;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem auto;
+      max-width: 600px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .cliente img {
+      max-width: 100px;
+      border-radius: 6px;
+      margin-right: 10px;
+    }
+    .imagenes {
+      display: flex;
+      gap: 10px;
+      margin-top: 0.5rem;
+    }
+    .dato {
+      margin: 0.25rem 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Consulta de Clientes</h1>
+  <input type="text" id="buscador" placeholder="Buscar por nombre o clave..." />
+  <div id="resultados"></div>
+
+  <script>
+    const supabaseUrl = 'https://cvpbtjlupswbyxenugpz.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'; // Usa tu clave pública (anon)
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function cargarClientes() {
+      const { data, error } = await supabase.from('clientes').select('*');
+      if (error) {
+        alert('Error al cargar clientes');
+        console.error(error);
+        return;
+      }
+      window.todosLosClientes = data;
+      mostrarClientes(data);
+    }
+
+    function normalizarTexto(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    }
+
+    function mostrarClientes(clientes) {
+      const contenedor = document.getElementById('resultados');
+      contenedor.innerHTML = '';
+
+      clientes.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'cliente';
+        div.innerHTML = `
+          <div class="dato"><strong>Clave:</strong> ${c.clave_tecnopro}</div>
+          <div class="dato"><strong>Nombre:</strong> ${c.nombre_fiscal}</div>
+          <div class="dato"><strong>Dirección:</strong> ${c.direccion || ''}</div>
+          <div class="dato"><strong>Teléfono:</strong> ${c.telefono || ''}</div>
+          <div class="imagenes">
+            <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" />
+            <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/100?text=No+Comprobante'}" alt="Comprobante" />
+            <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=No+Autorizado'}" alt="Autorizado" />
+          </div>
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    document.getElementById('buscador').addEventListener('input', e => {
+      const valor = normalizarTexto(e.target.value);
+      const resultados = window.todosLosClientes.filter(c => {
+        const clave = (c.clave_tecnopro || '').toString();
+        const nombre = normalizarTexto(c.nombre_fiscal || '');
+        return nombre.includes(valor) || clave.includes(valor);
+      });
+      mostrarClientes(resultados);
+    });
+
+    cargarClientes();
+  </script>
+</body>
+</html>
