@@ -134,7 +134,10 @@ const { data, error } = await supabase.from('clientes').select('*');
     const coincidencias = window.todosLosClientes.filter(c => {
       const clave = (c.clave_tecnopro || '').toString();
       const nombre = normalizarTexto(c.nombre_fiscal || '');
-      return nombre.includes(valor) || clave.includes(valor);
+      return valor.split(' ').every(palabra =>
+  nombre.includes(palabra) || clave.includes(palabra)
+);
+
     });
 
     sugerencias.innerHTML = coincidencias.map(c => `
