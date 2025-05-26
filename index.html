@@ -83,17 +83,31 @@
   const supabaseUrl = 'https://cvpbtjlupswbyxenugpz.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
   const supabase = createClient(supabaseUrl, supabaseKey);
+let ultimosResultados = [];
 
-  async function cargarClientes() {
-const { data, error } = await supabase.from('clientes').select('*');
-    if (error) {
-      alert('Error al cargar clientes');
-      console.error(error);
-      return;
-    }
-    window.todosLosClientes = data;
-    mostrarClientes(data);
+
+async function buscarClientes(valor) {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .ilike('nombre_fiscal', `%${valor}%`);
+
+  if (error) {
+    console.error('Error al buscar:', error);
+    return;
   }
+
+  ultimosResultados = data; // ✅ Aquí se guarda la última búsqueda
+
+  mostrarClientes(data);
+
+  sugerencias.innerHTML = data.map(c => `
+    <div class="sugerencia-item" data-clave="${c.clave_tecnopro}">
+      ${c.nombre_fiscal}
+    </div>
+  `).join('');
+}
+
 
   function normalizarTexto(texto) {
     return texto.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
@@ -124,39 +138,27 @@ const { data, error } = await supabase.from('clientes').select('*');
   const buscador = document.getElementById('buscador');
   const sugerencias = document.getElementById('sugerencias');
 
-  buscador.addEventListener('input', e => {
-    const valor = normalizarTexto(e.target.value);
-    if (!valor) {
-      sugerencias.innerHTML = '';
-      return;
-    }
-
-    const coincidencias = window.todosLosClientes.filter(c => {
-      const clave = (c.clave_tecnopro || '').toString();
-      const nombre = normalizarTexto(c.nombre_fiscal || '');
-      return valor.split(' ').every(palabra =>
-  nombre.includes(palabra) || clave.includes(palabra)
-);
-
-    });
-
-    sugerencias.innerHTML = coincidencias.map(c => `
-      <div class="sugerencia-item" data-clave="${c.clave_tecnopro}">${c.nombre_fiscal}</div>
-    `).join('');
-  });
+buscador.addEventListener('input', e => {
+  const valor = e.target.value.trim();
+  if (valor.length >= 3) {
+    buscarClientes(valor);
+  } else {
+    sugerencias.innerHTML = '';
+    document.getElementById('resultados').innerHTML = '';
+  }
+});
 
   sugerencias.addEventListener('click', e => {
     const item = e.target.closest('.sugerencia-item');
     if (item) {
       const clave = item.dataset.clave;
-      const seleccionado = window.todosLosClientes.find(c => c.clave_tecnopro.toString() === clave);
+const seleccionado = ultimosResultados.find(c => c.clave_tecnopro.toString() === clave);
       mostrarClientes([seleccionado]);
       sugerencias.innerHTML = '';
       buscador.value = seleccionado.nombre_fiscal;
     }
   });
 
-  cargarClientes();
 </script>
 
 
