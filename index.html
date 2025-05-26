@@ -1,14 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Consulta de Clientes</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f9ff;
-      margin: 0;
       padding: 1rem;
     }
     h1 {
@@ -16,39 +16,71 @@
       color: #004080;
     }
     #buscador {
-      width: 100%;
-      max-width: 500px;
-      margin: 1rem auto;
       display: block;
+      width: 100%;
+      max-width: 600px;
+      margin: 1rem auto;
       padding: 0.5rem;
       font-size: 1rem;
     }
-    .cliente {
-      background: #fff;
-      border: 1px solid #cce0ff;
-      border-radius: 10px;
-      padding: 1rem;
-      margin: 1rem auto;
-      max-width: 800px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
     #sugerencias {
+      position: absolute;
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
       margin: 0 auto;
+      left: 0;
+      right: 0;
+      top: 110px;
       background: white;
       border: 1px solid #cce0ff;
-      border-radius: 0 0 8px 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      position: absolute;
-      z-index: 99;
+      border-top: none;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      z-index: 999;
     }
     .sugerencia-item {
       padding: 0.5rem;
       cursor: pointer;
     }
-    .sugerencia-item:hover {
+    .sugerencia-item:hover,
+    .sugerencia-item.active {
       background-color: #e6f0ff;
+    }
+    #resultados {
+      margin-top: 4rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .fila {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .col-texto {
+      flex: 2;
+      padding-right: 1rem;
+    }
+    .col-imagen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .col-imagen img {
+      max-width: 100px;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .dato {
+      margin-bottom: 0.5rem;
+    }
+    .dato strong {
+      display: inline-block;
+      min-width: 130px;
     }
   </style>
 </head>
@@ -57,14 +89,17 @@
   <input type="text" id="buscador" placeholder="Buscar por nombre o clave..." autocomplete="off" />
   <div id="sugerencias"></div>
   <div id="resultados"></div>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    const supabaseUrl = 'https://cvpbtjlupswbyxenugpz.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      'https://cvpbtjlupswbyxenugpz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+    );
 
     let ultimosResultados = [];
+    let indiceActivo = -1;
 
     async function buscarClientes(valor) {
       const { data, error } = await supabase
@@ -73,82 +108,90 @@
         .ilike('nombre_fiscal', `%${valor}%`);
 
       if (error) {
-        console.error('Error al buscar:', error);
+        console.error('Error:', error);
         return;
       }
 
       ultimosResultados = data;
-      mostrarClientes(data);
+      renderizarSugerencias();
+    }
 
-      sugerencias.innerHTML = data.map(c => `
-        <div class="sugerencia-item" data-clave="${c.clave_tecnopro}">${c.nombre_fiscal}</div>
+    function renderizarSugerencias() {
+      const sugerencias = document.getElementById('sugerencias');
+      sugerencias.innerHTML = ultimosResultados.map((c, i) => `
+        <div class="sugerencia-item ${i === indiceActivo ? 'active' : ''}" data-index="${i}">
+          ${c.nombre_fiscal}
+        </div>
       `).join('');
     }
 
-    function mostrarClientes(clientes) {
+    function mostrarCliente(c) {
       const contenedor = document.getElementById('resultados');
-      contenedor.innerHTML = '';
-
-      clientes.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'cliente';
-        div.innerHTML = `
-          <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
-            <div style="flex: 1 1 300px;">
-              <p><strong>Clave:</strong> ${c.clave_tecnopro || ''}</p>
-              <p><strong>Precio catálogo:</strong> ${c.catalogo_precio || ''}</p>
-              <p><strong>Nombre:</strong> ${c.nombre_fiscal || ''}</p>
-              <p><strong>RFC:</strong> ${c.rfc || ''}</p>
-              <p><strong>Dirección:</strong> ${c.direccion || ''}</p>
-              <p><strong>Teléfono:</strong> ${c.telefono || ''}</p>
-              <p><strong>Régimen Fiscal:</strong> ${c.regimen_fiscal || ''}</p>
-              <p><strong>Email:</strong> ${c.email || ''}</p>
-              <p><strong>WhatsApp:</strong> ${c.celular_whatsapp || ''}</p>
-              <p><strong>Nombre autorizado:</strong> ${c.nombre_autorizado_1 || ''}</p>
-              <p><strong>Fecha de registro:</strong> ${c.fecha_registro || ''}</p>
-              <p><strong>Comentarios:</strong> ${c.comentarios || ''}</p>
-            </div>
-            <div style="flex: 1 1 200px; text-align: center;">
-              <div>
-                <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" style="max-width: 100%; border-radius: 10px;" />
-                <p style="margin-top: 0.25rem;">Foto Cliente</p>
-              </div>
-              <div>
-                <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=No+Autorizado'}" alt="Autorizado" style="max-width: 100%; border-radius: 10px;" />
-                <p style="margin-top: 0.25rem;">Persona Autorizada</p>
-              </div>
-            </div>
+      contenedor.innerHTML = `
+        <div class="fila">
+          <div class="col-texto">
+            <div class="dato"><strong>Clave:</strong> ${c.clave_tecnopro}</div>
+            <div class="dato"><strong>Precio catálogo:</strong> ${c.catalogo_precio || ''}</div>
+            <div class="dato"><strong>Nombre:</strong> ${c.nombre_fiscal}</div>
+            <div class="dato"><strong>RFC:</strong> ${c.rfc || ''}</div>
+            <div class="dato"><strong>Dirección:</strong> ${c.direccion || ''}</div>
+            <div class="dato"><strong>Teléfono:</strong> ${c.telefono || ''}</div>
+            <div class="dato"><strong>Régimen Fiscal:</strong> ${c.regimen_fiscal || ''}</div>
+            <div class="dato"><strong>Email:</strong> ${c.email || ''}</div>
+            <div class="dato"><strong>WhatsApp:</strong> ${c.celular_whatsapp || ''}</div>
+            <div class="dato"><strong>Autorizado:</strong> ${c.nombre_autorizado_1 || ''}</div>
+            <div class="dato"><strong>Fecha de registro:</strong> ${c.fecha_registro || ''}</div>
+            <div class="dato"><strong>Comentarios:</strong> ${c.comentarios || ''}</div>
           </div>
-          <div style="margin-top: 1rem; text-align: center;">
-            <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/200x120?text=No+Comprobante'}" alt="Comprobante" style="max-width: 100%; border-radius: 6px;" />
-            <p style="margin-top: 0.25rem;">Comprobante (INE u otro)</p>
+          <div class="col-imagen">
+            <img src="${c.imagen_cliente_url || 'https://via.placeholder.com/100?text=No+Foto'}" alt="Foto Cliente" />
+            <div>Foto Cliente</div>
+            <img src="${c.imagen_autorizada_1_url || 'https://via.placeholder.com/100?text=No+Autorizado'}" alt="Autorizado" />
+            <div>Persona Autorizada</div>
           </div>
-        `;
-        contenedor.appendChild(div);
-      });
+        </div>
+        <div class="fila">
+          <div class="col-imagen">
+            <img src="${c.imagen_comprobante_url || 'https://via.placeholder.com/100?text=No+Comprobante'}" alt="Comprobante" />
+            <div>Comprobante</div>
+          </div>
+        </div>
+      `;
     }
 
-    const buscador = document.getElementById('buscador');
-    const sugerencias = document.getElementById('sugerencias');
-
-    buscador.addEventListener('input', e => {
+    document.getElementById('buscador').addEventListener('input', e => {
       const valor = e.target.value.trim();
+      indiceActivo = -1;
       if (valor.length >= 3) {
         buscarClientes(valor);
       } else {
-        sugerencias.innerHTML = '';
+        document.getElementById('sugerencias').innerHTML = '';
         document.getElementById('resultados').innerHTML = '';
       }
     });
 
-    sugerencias.addEventListener('click', e => {
+    document.getElementById('buscador').addEventListener('keydown', e => {
+      const total = ultimosResultados.length;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        indiceActivo = (indiceActivo + 1) % total;
+        renderizarSugerencias();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        indiceActivo = (indiceActivo - 1 + total) % total;
+        renderizarSugerencias();
+      } else if (e.key === 'Enter' && indiceActivo >= 0 && ultimosResultados[indiceActivo]) {
+        mostrarCliente(ultimosResultados[indiceActivo]);
+        document.getElementById('sugerencias').innerHTML = '';
+      }
+    });
+
+    document.getElementById('sugerencias').addEventListener('click', e => {
       const item = e.target.closest('.sugerencia-item');
       if (item) {
-        const clave = item.dataset.clave;
-        const seleccionado = ultimosResultados.find(c => c.clave_tecnopro?.toString() === clave);
-        mostrarClientes([seleccionado]);
-        sugerencias.innerHTML = '';
-        buscador.value = seleccionado?.nombre_fiscal || '';
+        const index = parseInt(item.dataset.index);
+        mostrarCliente(ultimosResultados[index]);
+        document.getElementById('sugerencias').innerHTML = '';
       }
     });
   </script>
